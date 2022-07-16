@@ -296,5 +296,3 @@ def selectKey():
     #return the slected key id 
     return key
 
-
-runKey(selectKey())
