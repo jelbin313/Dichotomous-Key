@@ -2,8 +2,8 @@ import sqlite3
 import Nodes
 import Functions 
 
+#funtion to enter a new dichotmous key into the database
 def enterKey():
-
     #open a connection to the database
     conn = sqlite3.connect('DichotomousKey.db')
 
@@ -142,5 +142,106 @@ def enterKey():
     #close connection to the databse
     conn.close()
 
-enterKey()
+#function to run a dichotomous key from the database
+def runKey(key):
+    #open a connection to the database
+    conn = sqlite3.connect('DichotomousKey.db')
 
+    #get the name of the key from the database
+    sql = "SELECT KeyName FROM Keys WHERE KeyID = " + str(key) + " ;"
+    rows = conn.execute(sql).fetchall()[0][0]
+
+    #display the key name to the user
+    print("Key: " + str(rows))
+
+    #get first node of the key from the database
+    sql = "SELECT FirstNode FROM Keys WHERE KeyID = " + str(key) + " ;"
+    rows = conn.execute(sql).fetchall()[0][0]
+
+    #create a new key node to hold the first node
+    first = Nodes.KeyNode()
+    #set first id to the first node in the databse
+    first.id = rows
+
+    #get info about first node of the key from the database
+    sql = "SELECT NoNode, YesNode FROM Nodes WHERE NodeID = " + str(first.id) + " ;"
+    rows = conn.execute(sql).fetchall()[0]
+
+    #set no of first
+    nextNo = Nodes.KeyNode()
+    nextNo.id = rows[0]
+    first.no = nextNo
+
+    #set yes of first
+    nextYes = Nodes.KeyNode()
+    nextYes.id = rows[1]
+    first.yes = nextYes
+
+    #set current to first node
+    current = first
+
+    #while noth yes and no pointers are not null
+    while (current.no.id is not None) and (current.yes.id is not None) :
+        #get the question Id from the database
+        sql = "SELECT NodeQuestion FROM Nodes WHERE NodeID = " + str(current.id) + " ;"
+        rows = conn.execute(sql).fetchall()[0][0]
+
+        #get the question from the database
+        sql = "SELECT QuestionText FROM Questions WHERE QuestionID = " +  str(rows) + " ;"
+        rows = conn.execute(sql).fetchall()[0][0]
+
+        #print the question
+        response = input(str(rows) + " Y/N: ")
+
+        #if repsonse is no
+        if response == "N":
+            #set current to no
+            current = current.no
+
+            #get info for current from database
+            sql = "SELECT NoNode, YesNode FROM Nodes WHERE NodeID = " + str(current.id) + " ;"
+            rows = conn.execute(sql).fetchall()[0]
+
+            #set no of current
+            nextNo = Nodes.KeyNode()
+            nextNo.id = rows[0]
+            current.no = nextNo
+
+            #set yes of current
+            nextYes = Nodes.KeyNode()
+            nextYes.id = rows[1]
+            current.yes = nextYes
+
+        #if repsonse is yes
+        elif response == "Y":
+            #set current to yes
+            current = current.yes
+
+            #get info for current from database
+            sql = "SELECT NoNode, YesNode FROM Nodes WHERE NodeID = " + str(current.id) + " ;"
+            rows = conn.execute(sql).fetchall()[0]
+
+            #set no of current
+            nextNo = Nodes.KeyNode()
+            nextNo.id = rows[0]
+            current.no = nextNo
+
+            #set yes of current
+            nextYes = Nodes.KeyNode()
+            nextYes.id = rows[1]
+            current.yes = nextYes
+
+    
+    #after the while loop, get species
+    sql = "SELECT NodeSpecies FROM Nodes WHERE NodeID = " + str(current.id) + " ;"
+    rows = conn.execute(sql).fetchall()[0][0]
+
+    #get species info
+    sql = "SELECT ScientificName FROM Species WHERE SpeciesID = " + str(rows) + " ;"
+    rows = conn.execute(sql).fetchall()[0][0]
+
+    #print out species info
+    print("Species: " + str(rows))
+
+    #close connection to the databse
+    conn.close()
