@@ -1,3 +1,4 @@
+from ctypes import sizeof
 import sqlite3
 import Nodes
 import Functions 
@@ -149,6 +150,7 @@ def runKey(key):
 
     #get the name of the key from the database
     sql = "SELECT KeyName FROM Keys WHERE KeyID = " + str(key) + " ;"
+    print(sql)
     rows = conn.execute(sql).fetchall()[0][0]
 
     #display the key name to the user
@@ -245,3 +247,54 @@ def runKey(key):
 
     #close connection to the databse
     conn.close()
+
+#function to view all the keys in the database
+def viewKeys():
+    #open a connection to the database
+    conn = sqlite3.connect('DichotomousKey.db')
+
+    #get the name of all keys in keys table
+    sql = "SELECT keyName FROM Keys"
+    rows = conn.execute(sql).fetchall()
+
+    #go through all the rows returned and print the name of each one
+    ctr = 1
+    for row in rows:
+        print(str(ctr) + ". " + str(rows[ctr - 1][0]))
+        ctr += 1
+
+    #close connection to the databse
+    conn.close()
+
+#function to print out keys, allow a user to select one, then return the id of the selected key
+def selectKey():
+    #open a connection to the database
+    conn = sqlite3.connect('DichotomousKey.db')
+
+    #print out all keys in the database
+    print("Keys currently in database:")
+
+    #get the name and ID of all keys in keys table
+    sql = "SELECT keyName, keyID FROM Keys"
+    rows = conn.execute(sql).fetchall()
+
+    #go through all the rows returned and print the name of each one
+    ctr = 1
+    for row in rows:
+        print(str(ctr) + ". " + str(rows[ctr - 1][0]))
+        ctr += 1
+
+    #ask user to select a key
+    response =  input("Type the number of the key you would like to run: ")
+
+    #get the id of the selected key
+    key = rows[int(response) - 1][1]
+
+    #close connection to the databse
+    conn.close()
+
+    #return the slected key id 
+    return key
+
+
+runKey(selectKey())
