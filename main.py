@@ -1,6 +1,11 @@
 import Key
+import databaseSetup
 
-#print title/welcome message
+
+#first we need to run database setup
+databaseSetup.createDatabase()
+
+# #print title/welcome message
 print("Welcome to this dichotomous key program. In the following menu you will get options to create and run your own dichotomous keys. ")
 
 #initilize response
@@ -46,3 +51,6 @@ while response != 0:
 
 #print closing message
 print("Exit complete")
+
+#wait a few seconds before exiting program
+sleep(2)
