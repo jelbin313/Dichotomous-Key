@@ -1,4 +1,3 @@
-from ctypes import sizeof
 import sqlite3
 import Nodes
 import Functions 
@@ -10,12 +9,14 @@ def enterKey():
 
     #Ask user to enter the name of their key
     key = input("Enter a name for the key: ")
+    print("")
 
     #create a new key node to hold the first node
     first = Nodes.KeyNode()
 
     #Ask user to enter the first question in the key
     first.text = input("Enter the first question: ")
+    print("")
 
     #add first node to the database
     #add the first question into the Questions table
@@ -57,11 +58,13 @@ def enterKey():
             
             #ask the user if this node will hold a species or a question
             response = input("Will the current node hold a species? Y/N: ")
+            print("")
 
             #if current is a species node
             if response == "Y":
                 #set the scientific name
                 current.text = input("What is the scientific name? ")
+                print("")
                 
                 #check to see if the input species name already exists in species table
                 #add a new species, using the scientific name provided, to species table
@@ -79,6 +82,7 @@ def enterKey():
             #if current is not a species node
             elif response == "N":
                 current.text = input("Enter the question that the current node will hold: ")
+                print("")
 
                 #add question to Questions table
                 sql = "INSERT INTO Questions (QuestionText) VALUES ('" + str(current.text) + "');"
@@ -143,6 +147,8 @@ def enterKey():
     #close connection to the databse
     conn.close()
 
+    print("Key created")
+
 #function to run a dichotomous key from the database
 def runKey(key):
     #open a connection to the database
@@ -150,11 +156,11 @@ def runKey(key):
 
     #get the name of the key from the database
     sql = "SELECT KeyName FROM Keys WHERE KeyID = " + str(key) + " ;"
-    print(sql)
     rows = conn.execute(sql).fetchall()[0][0]
 
     #display the key name to the user
     print("Key: " + str(rows))
+    print("")
 
     #get first node of the key from the database
     sql = "SELECT FirstNode FROM Keys WHERE KeyID = " + str(key) + " ;"
@@ -243,6 +249,7 @@ def runKey(key):
     rows = conn.execute(sql).fetchall()[0][0]
 
     #print out species info
+    print("")
     print("Species: " + str(rows))
 
     #close connection to the databse
@@ -252,6 +259,8 @@ def runKey(key):
 def viewKeys():
     #open a connection to the database
     conn = sqlite3.connect('DichotomousKey.db')
+
+    print("Keys currently in database")
 
     #get the name of all keys in keys table
     sql = "SELECT keyName FROM Keys"
@@ -272,7 +281,7 @@ def selectKey():
     conn = sqlite3.connect('DichotomousKey.db')
 
     #print out all keys in the database
-    print("Keys currently in database:")
+    print("Keys currently in database")
 
     #get the name and ID of all keys in keys table
     sql = "SELECT keyName, keyID FROM Keys"
@@ -285,7 +294,9 @@ def selectKey():
         ctr += 1
 
     #ask user to select a key
+    print("")
     response =  input("Type the number of the key you would like to run: ")
+    print("")
 
     #get the id of the selected key
     key = rows[int(response) - 1][1]
