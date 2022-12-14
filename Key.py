@@ -61,7 +61,7 @@ def enterKey():
             print("")
 
             #if current is a species node
-            if response == "Y":
+            if response.upper() == "Y":
                 #set the scientific name
                 current.text = input("What is the scientific name? ")
                 print("")
@@ -80,7 +80,7 @@ def enterKey():
                 current = current.previous
 
             #if current is not a species node
-            elif response == "N":
+            elif response.upper() == "N":
                 current.text = input("Enter the question that the current node will hold: ")
                 print("")
 
@@ -148,6 +148,7 @@ def enterKey():
     conn.close()
 
     print("Key created")
+    return True
 
 #function to run a dichotomous key from the database
 def runKey(key):
@@ -189,7 +190,7 @@ def runKey(key):
     current = first
 
     #while noth yes and no pointers are not null
-    while (current.no.id is not None) and (current.yes.id is not None) :
+    while (current.no.id is not None) and (current.yes.id is not None):
         #get the question Id from the database
         sql = "SELECT NodeQuestion FROM Nodes WHERE NodeID = " + str(current.id) + " ;"
         rows = conn.execute(sql).fetchall()[0][0]
@@ -202,7 +203,7 @@ def runKey(key):
         response = input(str(rows) + " Y/N: ")
 
         #if repsonse is no
-        if response == "N":
+        if response.upper() == "N":
             #set current to no
             current = current.no
 
@@ -221,7 +222,7 @@ def runKey(key):
             current.yes = nextYes
 
         #if repsonse is yes
-        elif response == "Y":
+        elif response.upper() == "Y":
             #set current to yes
             current = current.yes
 
@@ -307,3 +308,124 @@ def selectKey():
     #return the slected key id 
     return key
 
+def deleteKey(key):
+    #open a connection to the database
+    conn = sqlite3.connect('DichotomousKey.db')
+    db = conn.cursor()
+
+    #get key info from the database
+    sql = "SELECT KeyName, FirstNode FROM Keys WHERE KeyID = " + str(key) + " ;"
+    rows = db.execute(sql).fetchone()
+    keyName = rows[0]
+    firstNodeID = rows[1]
+
+    #display the key name to the user, give them a chnace to confirm
+    response = input("Are you sure you want to delete " + str(keyName) + " Y/N:")
+
+    #if the user does not want to delete the key, return from this function
+    if response.upper() == "N":
+        return
+
+    #get first node info from the database
+    sql = "SELECT YesNode, NoNode, NodeType FROM Nodes WHERE NodeID = " + str(firstNodeID) + " ;"
+    rows = db.execute(sql).fetchone()
+    yesNode = rows[0]
+    noNode = rows[1]
+    nodeType = rows[2]
+
+    #create a key node to hold the first node, add attributes from database
+    first = Nodes.KeyNode(id=firstNodeID, yes=yesNode, no=noNode, node_type=nodeType)
+
+    #create a variable to hold current node, set it to first
+    current = first
+
+    #now that we are at the bottom of the key, we can start deleting
+    while(current is not None):
+        #go to the bottom and left most (no most) node
+        while(current.no is not None) or (current.yes is not None):
+            #if no contains a node we will be moving to no
+            if current.no is not None:
+                #if type is int, we will need to populate the node first
+                if(type(current.no) == int):
+                    #get the current node's no node
+                    sql = "SELECT YesNode, NoNode, NodeType FROM Nodes WHERE NodeID = " + str(current.no) + " ;"
+                    rows = db.execute(sql).fetchone()
+                    yesNode = rows[0]
+                    noNode = rows[1]
+                    nodeType = rows[2]
+
+                    #create a new key node to hold the first node, add attributes from database
+                    current.no = Nodes.KeyNode(id=current.no, yes=yesNode, no=noNode, node_type=nodeType)
+
+                #set previous
+                current.no.previous = current
+
+                #set current to current.no
+                current = current.no
+
+            #if no does not contain a node, check yes
+            elif current.yes is not None:
+                #if type is int, we will need to populate the node first
+                if(type(current.no) == int):
+                    #get the current node's yes node
+                    sql = "SELECT YesNode, NoNode, NodeType FROM Nodes WHERE NodeID = " + \
+                        str(current.yes) + " ;"
+                    rows = db.execute(sql).fetchone()
+                    yesNode = rows[0]
+                    noNode = rows[1]
+                    nodeType = rows[2]
+
+                    #create a new key node to hold the first node, add attributes from database
+                    current.yes = Nodes.KeyNode(id=current.yes, yes=yesNode, no=noNode, node_type=nodeType)
+
+                #set previous
+                current.yes.previous = current
+
+                #set current to current.no
+                current = current.yes
+
+        #now delete current node
+        #if the node is a question node, delete the question
+        #species do not get deleted, they can be used in mutliple keys
+        if current.node_type == "Question":
+            #get question node from database
+            sql = "SELECT NodeQuestion FROM Nodes WHERE NodeID = " + str(current.id) + " ;"
+            rows = db.execute(sql).fetchone()
+
+            #now delete the questiom from the questions table
+            sql = "DELETE FROM Questions WHERE QuestionID =" + str(rows[0]) + " ;"
+            print(sql)
+            db.execute(sql)
+        
+        #now delete the current node from the db
+        sql = "DELETE FROM Nodes WHERE NodeID = " + str(current.id) + " ;"
+        print(sql)
+        db.execute(sql)
+
+        #now set whatever points to the current node to none
+        if current.previous.no == current:
+            current.previous.no = None
+        elif current.previous.yes == current:
+            current.previous.yes = None
+
+        #now move to previous node
+        current = current.previous
+
+
+         
+    # #now delete the key from the keys table
+    sql = "DELETE FROM Keys WHERE KeyID = " + str(key) +" ;"
+    print(sql)
+    db.execute(sql)
+
+    # #commit changes to the databse
+    # #conn.commit()
+
+    #close connection to the databse
+    conn.close()
+
+
+
+key = input("enter key: ")
+deleteKey(int(key))
+    
