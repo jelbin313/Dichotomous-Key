@@ -545,20 +545,4 @@ def fillKey(key):
     print("Key filled")
     return first
 
-
-key = input("enter key: ")
-first = fillKey(key)
-
-current = first
-
-while current.node_type != "Species":
-    print(current.text)
-    res = input("enter: ")
-    if res.lower() == "y":
-        current = current.yes
-    else:
-        current = current.no
-
-print("species: ", current.text)
-
     
