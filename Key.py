@@ -2,6 +2,10 @@ import sqlite3
 import Nodes
 import Functions 
 
+#TODO sqllite cursors or connections? Idk enough about thenm
+#TODO add logging to everything in this file
+#TODO I kind of want to get rid of the Functions file and jsut do everything in here?
+
 #funtion to enter a new dichotmous key into the database
 def enterKey():
     #open a connection to the database
@@ -150,6 +154,112 @@ def enterKey():
     print("Key created")
     return True
 
+#function to fill up key using the database so that you can use the linked tree in python
+def fillKey(key):
+    #open a connection to the database
+    conn = sqlite3.connect('DichotomousKey.db')
+    db = conn.cursor()
+
+    #get key info from the database
+    sql = "SELECT FirstNode FROM Keys WHERE KeyID = " + str(key) + " ;"
+    rows = db.execute(sql).fetchone()
+    firstNodeID = rows[0]
+
+    #create a new key node to hold the first node
+    first = Nodes.KeyNode(id=firstNodeID)
+
+    #create a variable to hold current node, set it to first
+    current = first
+
+    #loop through the tree while it is not full
+    while(current != None):
+        #first check if current is an empty node (if it is empty current will not have the attribute)
+        if current.node_type is None:
+            #if the node is empty:
+            #get first node info from the database
+            sql = "SELECT NodeType FROM Nodes WHERE NodeID = " + \
+                str(current.id) + " ;"
+            rows = db.execute(sql).fetchone()
+            nodeType = rows[0]
+
+            #set node type
+            current.node_type = nodeType
+
+            #if current is a species node
+            if current.node_type == "Species":
+                #get species ID from database
+                sql = "SELECT NodeSpecies FROM Nodes WHERE NodeID = " + \
+                    str(current.id) + " ;"
+                rows = db.execute(sql).fetchone()
+                speciesID = rows[0]
+
+                #get species from database
+                sql = "SELECT ScientificName FROM Species WHERE SpeciesID = " + \
+                    str(speciesID) + " ;"
+                rows = db.execute(sql).fetchone()
+
+                #set text to species
+                current.text = rows[0]
+
+            #if current is not a species node
+            elif current.node_type == "Question":
+                #get question ID from database
+                sql = "SELECT NodeQuestion FROM Nodes WHERE NodeID = " + \
+                    str(current.id) + " ;"
+                rows = db.execute(sql).fetchone()
+                questionID = rows[0]
+
+                #get question from database
+                sql = "SELECT QuestionText FROM Questions WHERE QuestionID = " + \
+                    str(questionID) + " ;"
+                rows = db.execute(sql).fetchone()
+
+                #set current text to question
+                current.text = rows[0]
+
+        #now, we need to move to the next node
+        #check if node is a species, cannot keep filling after species
+        if current.node_type == "Species":
+            current = current.previous
+        #check to see if the no pointer is empty
+        elif current.no is None:
+            #get no from database
+            sql = "SELECT NoNode FROM Nodes WHERE NodeID = " + \
+                str(current.id) + " ;"
+            rows = db.execute(sql).fetchone()
+            noNode = rows[0]
+
+            #create a new node and set the no pointer of current, set previous to current
+            current.no = Nodes.KeyNode(id=noNode, previous=current)
+
+            #now move current to no pointer
+            current = current.no
+
+        #if the no pointer is not empty, check to see if yes pointer is empty
+        elif current.yes is None:
+            #get yes from database
+            sql = "SELECT YesNode FROM Nodes WHERE NodeID = " + \
+                str(current.id) + " ;"
+            rows = db.execute(sql).fetchone()
+            yesNode = rows[0]
+
+            #create a new node and set the no pointer of current, set previous to current
+            current.yes = Nodes.KeyNode(id=yesNode, previous=current)
+
+            #now move current to yes pointer
+            current = current.yes
+
+        #if neither pointer is empty, move up a node
+        else:
+            current = current.previous
+
+    #outside of while loop
+    #close connection to the databse
+    conn.close()
+
+    return first
+
+#TODO use fillKey at the beginning instead of keeping db connection open
 #function to run a dichotomous key from the database
 def runKey(key):
     #open a connection to the database
@@ -313,7 +423,6 @@ def selectKey():
 def deleteKey(key):
     #fill a linked list with the key from the database
     first = fillKey(key)
-    print(first.id)
 
     #open a connection to the db so we can delete things from it
     conn = sqlite3.connect('DichotomousKey.db')
@@ -324,40 +433,41 @@ def deleteKey(key):
 
     #loop through while current is not none
     while(current != None):
-        print(current.id)
         #if current is at the bottom of the tree, delete current
         if current.yes == None and current.no == None:
-
-            print("Bottom of the tree")
-
             # #if current is a question, we will have to delete the question associated with current first
-            # if current.node_type == "Question":
+            if current.node_type == "Question":
 
-            #     #get the question id of the current node
-            #     sql = "SELECT NodeQuestion FROM Nodes WHERE NodeID = " + current.id + " ;"
-            #     rows = db.execute(sql).fetchone()
-            #     question_id = rows[0]
+                #get the question id of the current node
+                sql = "SELECT NodeQuestion FROM Nodes WHERE NodeID = " + str(current.id) + " ;"
+                rows = db.execute(sql).fetchone()
+                question_id = rows[0]
 
-            #     #delete the question fromt he questions table
-            #     sql = "DELETE FROM Questions WHERE QuestionID = " + question_id + " ;"
-            #     db.execute(sql)
+                #delete the question fromt he questions table
+                sql = "DELETE FROM Questions WHERE QuestionID = " + str(question_id) + " ;"
+                db.execute(sql)
         
             # #delete the node from the db
-            # sql = "DELETE FROM Nodes WHERE NodeID = " + current.id + " ;"
-            # db.execute(sql)
+            sql = "DELETE FROM Nodes WHERE NodeID = " + str(current.id) + " ;"
+            db.execute(sql)
             
+            #before setting pointers, first check to see if this is the last node left
+            if current.previous is None:
+                #if so, set current to None
+                current = None
+
             #set previous pointer to current to None
-            if current.previous.no == current:
+            elif current.previous.no == current:
                 current.previous.no = None
+                #set current to previous
+                current = current.previous
 
             elif current.previous.yes == current:
                 current.previous.yes = None
-
-            #set current to previous
-            current = current.previous
+                #set current to previous
+                current = current.previous
 
             #skip the rest of the loop and go back to the top
-            #we need ot check if current is the bottom of the tree again
             continue
         
         #if current is not at the bottom of the tree, we need to walk to the bottom of the tree
@@ -370,106 +480,19 @@ def deleteKey(key):
         else:
             current = current.previous
 
-
-#function to fill up key using the database so that you can use the linked tree in python
-#TODO remove printing
-def fillKey(key):
-    #open a connection to the database
-    conn = sqlite3.connect('DichotomousKey.db')
-    db = conn.cursor()
-
-    #get key info from the database
-    sql = "SELECT FirstNode FROM Keys WHERE KeyID = " + str(key) + " ;"
-    rows = db.execute(sql).fetchone()
-    firstNodeID = rows[0]
-
-    #create a new key node to hold the first node
-    first = Nodes.KeyNode(id=firstNodeID)
-
-    #create a variable to hold current node, set it to first
-    current = first
-
-    #loop through the tree while it is not full
-    while(current != None):
-        #first check if current is an empty node (if it is empty current will not have the attribute)
-        if current.node_type is None:
-            #if the node is empty:
-            #get first node info from the database
-            sql = "SELECT NodeType FROM Nodes WHERE NodeID = " + str(current.id) + " ;"
-            rows = db.execute(sql).fetchone()
-            nodeType = rows[0]
-
-            #set node type
-            current.node_type = nodeType
-            
-            #if current is a species node
-            if current.node_type == "Species":
-                #get species ID from database
-                sql = "SELECT NodeSpecies FROM Nodes WHERE NodeID = " + str(current.id) + " ;"
-                rows = db.execute(sql).fetchone()
-                speciesID = rows[0]
-
-                #get species from database
-                sql = "SELECT ScientificName FROM Species WHERE SpeciesID = " + str(speciesID) + " ;"
-                rows = db.execute(sql).fetchone()
-
-                #set text to species
-                current.text = rows[0]
-
-            #if current is not a species node
-            elif current.node_type == "Question":
-                #get question ID from database
-                sql = "SELECT NodeQuestion FROM Nodes WHERE NodeID = " + str(current.id) + " ;"
-                rows = db.execute(sql).fetchone()
-                questionID = rows[0]
-
-                #get question from database
-                sql = "SELECT QuestionText FROM Questions WHERE QuestionID = " + str(questionID) + " ;"
-                rows = db.execute(sql).fetchone()
-
-                #set current text to question
-                current.text = rows[0]
-
-        #now, we need to move to the next node
-        #check if node is a species, cannot keep filling after species
-        if current.node_type == "Species":
-            current = current.previous
-        #check to see if the no pointer is empty
-        elif current.no is None:
-            #get no from database
-            sql = "SELECT NoNode FROM Nodes WHERE NodeID = " + str(current.id) + " ;"
-            rows = db.execute(sql).fetchone()
-            noNode = rows[0]
-
-            #create a new node and set the no pointer of current, set previous to current
-            current.no = Nodes.KeyNode(id=noNode, previous=current)
-
-            #now move current to no pointer
-            current = current.no
-
-        #if the no pointer is not empty, check to see if yes pointer is empty
-        elif current.yes is None:
-            #get yes from database
-            sql = "SELECT YesNode FROM Nodes WHERE NodeID = " + str(current.id) + " ;"
-            rows = db.execute(sql).fetchone()
-            yesNode = rows[0]
-
-            #create a new node and set the no pointer of current, set previous to current
-            current.yes = Nodes.KeyNode(id=yesNode, previous=current)
-
-            #now move current to yes pointer
-            current = current.yes
-
-        #if neither pointer is empty, move up a node
-        else:
-            current = current.previous
-
     #outside of while loop
-    #close connection to the databse
+    #delete the key from the keys table
+    sql = "DELETE FROM Keys WHERE KeyID = " + str(key) + " ;"
+    db.execute(sql)
+
+    #commit the changes to the database and close
+    conn.commit()
     conn.close()
 
-    print("Key filled")
-    return first
+    return True
+
+
+
 
     
-deleteKey(1)
+deleteKey(2)
