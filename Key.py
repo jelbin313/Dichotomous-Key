@@ -406,7 +406,7 @@ def selectKey():
 
     #ask user to select a key
     print("")
-    response =  input("Type the number of the key you would like to run: ")
+    response =  input("Type the number of the key you would like to select: ")
     print("")
 
     #get the id of the selected key
@@ -490,9 +490,3 @@ def deleteKey(key):
     conn.close()
 
     return True
-
-
-
-
-    
-deleteKey(2)

@@ -1,11 +1,11 @@
-CREATE TABLE Keys (
+CREATE TABLE IF NOT EXISTS Keys (
         KeyID INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
         KeyName TEXT NOT NULL,
         FirstNode INTEGER NOT NULL,
         FOREIGN KEY (FirstNode) REFERENCES Nodes(NodeID)
         );
 
-CREATE TABLE Nodes (
+CREATE TABLE IF NOT EXISTS Nodes (
             NodeID INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
             PreviousNode INTEGER,
             YesNode INTEGER,
@@ -17,12 +17,12 @@ CREATE TABLE Nodes (
             FOREIGN KEY (NodeSpecies) REFERENCES Species(SpeciesID)
         );
 
-CREATE TABLE Questions (
+CREATE TABLE IF NOT EXISTS Questions (
             QuestionID INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
             QuestionText Text NOT NULL
         );
 
-CREATE TABLE Species (
+CREATE TABLE IF NOT EXISTS Species (
             SpeciesID INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
             ScientificName TEXT NOT NULL,
             CommonName TEXT,

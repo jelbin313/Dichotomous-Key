@@ -1,9 +1,9 @@
-import Key
-import databaseSetup
-
+from Key import *
+from databaseSetup import *
+from time import sleep
 
 #first we need to run database setup
-databaseSetup.createDatabase()
+createDatabase()
 
 # #print title/welcome message
 print("Welcome to this dichotomous key program. In the following menu you will get options to create and run your own dichotomous keys. ")
@@ -18,7 +18,7 @@ while response != 0:
     print("1. Create a key")
     print("2. View keys")
     print("3. Run a key")
-    # print("4. Delete a key")
+    print("4. Delete a key")
     # print("5. View species menu")
     print("0. Exit")
     print("")
@@ -32,16 +32,21 @@ while response != 0:
         break
 
     elif int(response) == 1:
-        Key.enterKey()
+        enterKey()
     
     elif int(response) == 2:
-        Key.viewKeys()
+        viewKeys()
     
     elif int(response) == 3:
-        Key.runKey(Key.selectKey())
+        runKey(selectKey())
     
-    # elif int(response) == 4:
-    #     pass
+    elif int(response) == 4:
+        key = selectKey()
+        response = input("Are you sure you want to delete key? (Y/N) ")
+
+        if response.upper() == "Y":
+            deleteKey(key)
+            print("Key deleted.")
 
     # elif int(response) == 5:
     #     pass
